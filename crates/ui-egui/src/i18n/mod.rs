@@ -477,6 +477,10 @@ pub fn command_label(text: &str) -> String {
             return format!("{} {action}", t(prefix));
         }
     }
+    // BCG build: the About command names the app (menus and the command palette).
+    if text == "About PdfCraft" {
+        return branded(t(text));
+    }
     t(text).to_owned()
 }
 
@@ -513,8 +517,9 @@ mod tests {
     fn the_app_name_is_branded_in_every_language() {
         assert_eq!(super::branded("Welcome to PdfCraft"), "Welcome to BCG PDF");
         assert_eq!(super::branded(super::tr(super::Lang::from_code("ja").expect("ja registered"), "Welcome to PdfCraft")), "BCG PDF へようこそ");
-        // Whatever the language, the About command names the BCG build.
+        // Whatever the language, the About command names the BCG build (menus and the palette).
         assert!(super::menu_label("help.about", "About PdfCraft").contains("BCG PDF"));
+        assert!(super::command_label("About PdfCraft").contains("BCG PDF"));
     }
 
     use super::catalog::{Entry, parse_entries, placeholders};

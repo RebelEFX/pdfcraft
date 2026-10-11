@@ -87,3 +87,13 @@ fn about_dialog_has_contributors_and_models_tabs() {
     h.run_steps(4);
     assert!(h.query_all_by_label("Anthropic").count() >= 1);
 }
+
+#[test]
+fn the_about_command_names_bcg_pdf_in_the_palette() {
+    let h = harness(|app| {
+        app.palette_open = true;
+        app.palette_query = "About".into();
+    });
+    h.get_by_label_contains("About BCG PDF");
+    assert_eq!(h.query_all_by_label_contains("About PdfCraft").count(), 0);
+}
