@@ -1,0 +1,99 @@
+# BCG PDF (BCG build of PdfCraft): every push to `bcg` builds the web app and publishes it as a
+# GitHub Release, which the BCG Portal deploys (RebelEFX/bcg-portal, apps/pdf/pdfcraft.lock.json).
+#
+# The build steps copy upstream's release workflow (release.yml, job `web`) so the zip has the
+# same layout: pdfcraft-web-<version>/ with the LICENSE-*, NOTICE and font licence files.
+# This file exists only on `bcg`; `main` stays an exact mirror of storytold/pdfcraft.
+name: BCG web release
+
+on:
+  push:
+    branches: [bcg]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bcg-web-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  PDFCRAFT_BUILD_SHA: ${{ github.sha }}
+  TRUNK_VERSION: 0.21.14
+
+jobs:
+  web:
+    name: Build and release (wasm)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      # The craft-fonts build input (Japanese fonts), at the same commit upstream's release uses.
+      - name: Check out craft-fonts
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: storytold/craft-fonts
+          ref: 8dcdacd5153e64560d109541a47d806f26f048c0
+          path: craft-fonts
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: bcg-web
+      - name: Install trunk
+        run: |
+          curl -fsSL "https://github.com/trunk-rs/trunk/releases/download/v${TRUNK_VERSION}/trunk-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz -C "$HOME/.cargo/bin" trunk
+          trunk --version
+      - name: Build and zip
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+          CRAFT_FONTS_REQUIRED: "1"
+        run: |
+          export PDFCRAFT_BUILD_DATE="$(date -u +%Y-%m-%d)"
+          packaging/web/package.sh
+      - name: Check the build is rebranded
+        run: |
+          . packaging/env.sh
+          zip="dist/release/pdfcraft-web-$VERSION.zip"
+          for f in LICENSE-MIT LICENSE-APACHE NOTICE index.html; do
+            unzip -l "$zip" "pdfcraft-web-$VERSION/$f" >/dev/null || { echo "::error::$f missing from $zip"; exit 1; }
+          done
+          unzip -p "$zip" "pdfcraft-web-$VERSION/index.html" | grep -q '<title>BCG PDF</title>' \
+            || { echo "::error::index.html is not titled BCG PDF"; exit 1; }
+          # No Discord link left in the app.
+          if unzip -p "$zip" "pdfcraft-web-$VERSION/*.wasm" | grep -aq 'discord.gg/artcraft'; then
+            echo "::error::the Discord link is still in the build"; exit 1
+          fi
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          . packaging/env.sh
+          zip="dist/release/pdfcraft-web-$VERSION.zip"
+          sha="$(sha256sum "$zip" | cut -d' ' -f1)"
+          tag="bcg-v$VERSION-$GITHUB_RUN_NUMBER"
+          {
+            echo "BCG PDF web build, based on PdfCraft $VERSION (MIT licensed)."
+            echo
+            echo "- Commit: \`$GITHUB_SHA\` on \`bcg\`"
+            echo "- Asset: \`pdfcraft-web-$VERSION.zip\`"
+            echo "- SHA-256: \`$sha\`"
+            echo
+            echo "To deploy, set this in RebelEFX/bcg-portal \`apps/pdf/pdfcraft.lock.json\`:"
+            echo
+            echo '```json'
+            echo "\"version\": \"$VERSION\","
+            echo "\"release\": \"$tag\","
+            echo "\"url\": \"https://github.com/$GH_REPO/releases/download/$tag/pdfcraft-web-$VERSION.zip\","
+            echo "\"sha256\": \"$sha\","
+            echo '```'
+          } > notes.md
+          gh release create "$tag" "$zip" --target "$GITHUB_SHA" --title "BCG PDF $VERSION (build $GITHUB_RUN_NUMBER)" --notes-file notes.md
+          cat notes.md >> "$GITHUB_STEP_SUMMARY"
