@@ -483,10 +483,21 @@ pub fn command_label(text: &str) -> String {
 /// A registered command's menu label: its `@id` catalog entry if there is one, otherwise
 /// [`command_label`] of the current English label.
 pub fn menu_label(id: &str, label: &str) -> String {
-    match current().catalog().id(id) {
+    let shown = match current().catalog().id(id) {
         Some(translated) => translated.to_owned(),
         None => command_label(label),
-    }
+    };
+    if id == "help.about" { branded(&shown) } else { shown }
+}
+
+/// The app's name in the BCG build.
+pub const APP_NAME: &str = "BCG PDF";
+
+/// A translated string with the app's name in place of "PdfCraft". The catalogs keep the
+/// upstream name (every language writes it as "PdfCraft"), so the BCG build renames it where it
+/// is shown as the app's name, without editing the catalogs.
+pub fn branded(s: &str) -> String {
+    s.replace("PdfCraft", APP_NAME)
 }
 
 /// A plural-aware message: `one`/`other` are the English forms (with `{n}` where the count goes).
@@ -498,6 +509,14 @@ pub fn trn(lang: Lang, n: u64, one: &str, other: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_app_name_is_branded_in_every_language() {
+        assert_eq!(super::branded("Welcome to PdfCraft"), "Welcome to BCG PDF");
+        assert_eq!(super::branded(super::tr(super::Lang::from_code("ja").expect("ja registered"), "Welcome to PdfCraft")), "BCG PDF へようこそ");
+        // Whatever the language, the About command names the BCG build.
+        assert!(super::menu_label("help.about", "About PdfCraft").contains("BCG PDF"));
+    }
+
     use super::catalog::{Entry, parse_entries, placeholders};
     use super::*;
 
