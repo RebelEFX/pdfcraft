@@ -354,7 +354,16 @@ pub fn command(id: &str) -> Option<&'static CommandSpec> {
 
 /// Commands that appear in `menu`, in order.
 pub fn menu(menu: &str) -> impl Iterator<Item = &'static CommandSpec> + '_ {
-    COMMANDS.iter().filter(move |c| c.menu == Some(menu))
+    COMMANDS.iter().filter(move |c| c.menu == Some(menu) && offered(c.id))
+}
+
+/// BCG build: commands that stay registered (scripts and tests can still run them) but are not
+/// offered to staff in the menus or the command palette.
+pub const HIDDEN: &[&str] = &["help.github", "help.check_updates", "help.about"];
+
+/// Whether the command is offered in the menus and the command palette (see [`HIDDEN`]).
+pub fn offered(id: &str) -> bool {
+    !HIDDEN.contains(&id)
 }
 
 /// Whether `spec` can run now, for the document `active` (the focused tab).

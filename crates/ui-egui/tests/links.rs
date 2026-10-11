@@ -1,5 +1,6 @@
-//! Help links (BCG PDF build): no Discord or other ArtCraft community links anywhere; the About
-//! dialog says the app is based on PdfCraft and links to its source.
+//! Help links (BCG PDF build): no Discord or other ArtCraft community links anywhere. Help offers
+//! only Keyboard shortcuts; About, Check for updates and PdfCraft on GitHub stay registered but
+//! hidden from staff. The About dialog, when opened, says the app is based on PdfCraft.
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
@@ -89,11 +90,16 @@ fn about_dialog_has_contributors_and_models_tabs() {
 }
 
 #[test]
-fn the_about_command_names_bcg_pdf_in_the_palette() {
-    let h = harness(|app| {
-        app.palette_open = true;
-        app.palette_query = "About".into();
-    });
-    h.get_by_label_contains("About BCG PDF");
-    assert_eq!(h.query_all_by_label_contains("About PdfCraft").count(), 0);
+fn help_offers_only_keyboard_shortcuts() {
+    let help: Vec<_> = pdfcraft_engine::commands::menu("Help").map(|c| c.id).collect();
+    assert_eq!(help, ["help.shortcuts"]);
+    for query in ["About", "GitHub", "updates"] {
+        let h = harness(move |app| {
+            app.palette_open = true;
+            app.palette_query = query.into();
+        });
+        for hidden in ["About BCG PDF", "About PdfCraft", "PdfCraft on GitHub", "Check for updates"] {
+            assert_eq!(h.query_all_by_label_contains(hidden).count(), 0, "{query}: {hidden}");
+        }
+    }
 }
