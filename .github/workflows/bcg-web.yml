@@ -22,6 +22,8 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   PDFCRAFT_BUILD_SHA: ${{ github.sha }}
+  # Shown after the version ("0.9.0 (bcg)"), so this build can't be mistaken for upstream's.
+  PDFCRAFT_BUILD_LABEL: bcg
   TRUNK_VERSION: 0.21.14
 
 jobs:
@@ -32,12 +34,14 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      # The craft-fonts build input (Japanese fonts), at the same commit upstream's release uses.
+      # The craft-fonts build input (Japanese, Arabic and other interface fonts), at the pin
+      # upstream's release workflow uses (release.yml `craft-fonts-ref`). Upstream's own web
+      # release now builds without it; we keep it so non-Latin interface text has glyphs.
       - name: Check out craft-fonts
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: storytold/craft-fonts
-          ref: 8dcdacd5153e64560d109541a47d806f26f048c0
+          ref: 3d9ab3a132ed0eff457e424226a435a901da30d3
           path: craft-fonts
       - uses: dtolnay/rust-toolchain@stable
         with:
