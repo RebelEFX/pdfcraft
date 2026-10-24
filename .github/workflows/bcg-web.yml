@@ -59,7 +59,8 @@ jobs:
           CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
           CRAFT_FONTS_REQUIRED: "1"
         run: |
-          export PDFCRAFT_BUILD_DATE="$(date -u +%Y-%m-%d)"
+          PDFCRAFT_BUILD_DATE="$(date -u +%Y-%m-%d)"
+          export PDFCRAFT_BUILD_DATE
           packaging/web/package.sh
       - name: Check the build is rebranded
         run: |
