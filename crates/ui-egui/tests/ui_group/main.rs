@@ -7,6 +7,7 @@
 mod support;
 
 mod animate;
+mod bcg;
 mod bulk_fields;
 mod column_select;
 mod identity;

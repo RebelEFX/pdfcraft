@@ -70,28 +70,31 @@ pub struct Tokens {
 impl Tokens {
     pub fn for_kind(kind: ThemeKind) -> Self {
         match kind {
+            // BCG PDF build: the BCG palette (BCG Portal DESIGN.md): slate ink, sage accents,
+            // a green-biased off-white ground. Navy is the action colour; sage-dark carries links
+            // and icons; sage tint fills selections.
             ThemeKind::Light => Self {
                 kind,
-                titlebar: Color32::from_rgb(0xE9, 0xE9, 0xEB),
+                titlebar: Color32::from_rgb(0xEF, 0xF3, 0xF2),
                 chrome: Color32::from_rgb(0xFF, 0xFF, 0xFF),
                 panel: Color32::from_rgb(0xFF, 0xFF, 0xFF),
-                pasteboard: Color32::from_rgb(0xF1, 0xF1, 0xF3),
+                pasteboard: Color32::from_rgb(0xF0, 0xF4, 0xF3),
                 card: Color32::from_rgb(0xFF, 0xFF, 0xFF),
-                border: Color32::from_rgb(0xDA, 0xDA, 0xDE),
-                divider: Color32::from_rgb(0xE8, 0xE8, 0xEB),
-                text: Color32::from_rgb(0x22, 0x22, 0x26),
-                text_muted: Color32::from_rgb(0x5E, 0x5E, 0x66),
-                text_faint: Color32::from_rgb(0x6B, 0x6B, 0x73),
-                icon: Color32::from_rgb(0x44, 0x44, 0x4B),
-                hover: Color32::from_rgb(0xF0, 0xF0, 0xF3),
-                pressed: Color32::from_rgb(0xE4, 0xE4, 0xE9),
-                selected: Color32::from_rgb(0xE6, 0xEE, 0xFD),
-                accent: Color32::from_rgb(0x1B, 0x63, 0xE0),
-                accent_text: Color32::from_rgb(0x17, 0x55, 0xC4),
-                accent_soft: Color32::from_rgb(0xE3, 0xEC, 0xFD),
+                border: Color32::from_rgb(0xDC, 0xE4, 0xE2),
+                divider: Color32::from_rgb(0xE4, 0xEA, 0xE9),
+                text: Color32::from_rgb(0x14, 0x30, 0x40),
+                text_muted: Color32::from_rgb(0x56, 0x6A, 0x72),
+                text_faint: Color32::from_rgb(0x5F, 0x71, 0x74),
+                icon: Color32::from_rgb(0x2E, 0x4A, 0x58),
+                hover: Color32::from_rgb(0xEF, 0xF3, 0xF2),
+                pressed: Color32::from_rgb(0xE4, 0xEA, 0xE9),
+                selected: Color32::from_rgb(0xE7, 0xEF, 0xEE),
+                accent: Color32::from_rgb(0x14, 0x30, 0x40),
+                accent_text: Color32::from_rgb(0x4E, 0x6F, 0x6C),
+                accent_soft: Color32::from_rgb(0xE7, 0xEF, 0xEE),
                 field: Color32::from_rgb(0xFF, 0xFF, 0xFF),
-                badge_new: Color32::from_rgb(0x1B, 0x63, 0xE0),
-                page_shadow: Color32::from_black_alpha(34),
+                badge_new: Color32::from_rgb(0x4E, 0x6F, 0x6C),
+                page_shadow: Color32::from_rgba_unmultiplied(0x14, 0x30, 0x40, 40),
                 radius: 6,
             },
             ThemeKind::Dark => Self {
@@ -407,6 +410,7 @@ fn font_definitions_for_platform(prefer_hans: bool, platform: FontPolicyPlatform
         stack.extend(fallback.iter().cloned());
         fonts.families.insert(FontFamily::Name(fam.into()), stack);
     }
+    crate::bcg::fonts::register(&mut fonts);
     fonts
 }
 

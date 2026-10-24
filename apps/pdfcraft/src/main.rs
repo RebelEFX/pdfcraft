@@ -312,7 +312,8 @@ fn native_options(integrated: bool, app_frame: bool, renderer: eframe::Renderer)
     let mut viewport = egui::ViewportBuilder::default()
         .with_title("PdfCraft")
         .with_inner_size([1440.0, 920.0])
-        .with_min_inner_size([820.0, 520.0])
+        // BCG PDF: 820 for the document area plus the 96-point workflow rail.
+        .with_min_inner_size([916.0, 520.0])
         .with_drag_and_drop(true)
         // Wayland app id: matches packaging/linux/ai.storyteller.pdfcraft.desktop.
         .with_app_id(APP_ID);
@@ -382,6 +383,8 @@ fn app_creator<'a>(
         }
         app.integrated_titlebar = integrated;
         app.window_controls = window_controls;
+        // BCG PDF: the workflow rail, its drawers and the Start screen.
+        pdfcraft_ui_egui::bcg::enable(&mut app, &cc.egui_ctx);
         app.system_text_scale = text_scale::system();
         // Windows' Animation effects setting, which Preferences ▸ Animation effects follows unless
         // it is set to On or Off.
