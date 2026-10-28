@@ -26,6 +26,7 @@ pub fn left_panel(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
         |ui| match app.left {
             // Organize pages has its own panel whenever the grid shows (with a document open).
             _ if app.active.is_some() && crate::organize_panel::showing(app) => crate::organize_panel::panel(app, ui, &t),
+            LeftPanel::AllTools if crate::bcg::drawer_wanted(ui.ctx()) => crate::bcg::drawer::show(app, ui, &t),
             LeftPanel::AllTools => all_tools(app, ui, &t),
             LeftPanel::Tool(id) => match catalog::group(id) {
                 Some(g) => tool_detail(app, ui, &t, g),

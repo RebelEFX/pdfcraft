@@ -43,6 +43,25 @@ jobs:
           repository: storytold/craft-fonts
           ref: 3d9ab3a132ed0eff457e424226a435a901da30d3
           path: craft-fonts
+      # The BCG brand fonts (DESIGN.md: Mulish for the interface, Yeseva One for the wordmark and
+      # the Start heading), from google/fonts at a pinned commit and checked by SHA-256. Like
+      # craft-fonts they are a build input (ATTRIBUTION.toml `bcg-fonts`), never committed here.
+      - name: Fetch the BCG fonts
+        env:
+          GOOGLE_FONTS_REF: e7db6ca603fd4862010383ff17ffd6cc4ffac1c0
+        run: |
+          dir="$RUNNER_TEMP/bcg-fonts"
+          mkdir -p "$dir"
+          base="https://raw.githubusercontent.com/google/fonts/$GOOGLE_FONTS_REF/ofl"
+          fetch() {
+            curl -fsSL --retry 3 -o "$dir/$2" "$base/$1"
+            echo "$3  $dir/$2" | sha256sum -c -
+          }
+          fetch 'mulish/Mulish%5Bwght%5D.ttf' 'Mulish[wght].ttf' 00f1105796291a2fdda117a0fc7f25d8e68f8010cdbb34a411f60b3bd57717ac
+          fetch 'mulish/OFL.txt' 'OFL-Mulish.txt' 097e9ac414d9251c8580c073a13f8899798c66db746de60662148789ca693f19
+          fetch 'yesevaone/YesevaOne-Regular.ttf' 'YesevaOne-Regular.ttf' 88362b33820f0011e163e67b1d570fecd442aa8c05eaac89d5162f9c40d9dac3
+          fetch 'yesevaone/OFL.txt' 'OFL-YesevaOne.txt' ab592d1abca19428b89d851706fa7815ec25139c6affb45d366577ca63fb91b7
+          echo "BCG_FONTS_DIR=$dir" >> "$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -58,15 +77,23 @@ jobs:
         env:
           CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
           CRAFT_FONTS_REQUIRED: "1"
+          BCG_FONTS_REQUIRED: "1"
         run: |
           PDFCRAFT_BUILD_DATE="$(date -u +%Y-%m-%d)"
           export PDFCRAFT_BUILD_DATE
           packaging/web/package.sh
+          # The embedded BCG fonts' licences, beside craft-fonts' OFL-<family>.txt files.
+          . packaging/env.sh
+          stage="$RUNNER_TEMP/bcg-licences/pdfcraft-web-$VERSION"
+          mkdir -p "$stage"
+          cp "$BCG_FONTS_DIR/OFL-Mulish.txt" "$BCG_FONTS_DIR/OFL-YesevaOne.txt" "$stage/"
+          zip="$PWD/dist/release/pdfcraft-web-$VERSION.zip"
+          (cd "$RUNNER_TEMP/bcg-licences" && zip -q9 "$zip" "pdfcraft-web-$VERSION/OFL-Mulish.txt" "pdfcraft-web-$VERSION/OFL-YesevaOne.txt")
       - name: Check the build is rebranded
         run: |
           . packaging/env.sh
           zip="dist/release/pdfcraft-web-$VERSION.zip"
-          for f in LICENSE-MIT LICENSE-APACHE NOTICE index.html; do
+          for f in LICENSE-MIT LICENSE-APACHE NOTICE index.html OFL-Mulish.txt OFL-YesevaOne.txt; do
             unzip -l "$zip" "pdfcraft-web-$VERSION/$f" >/dev/null || { echo "::error::$f missing from $zip"; exit 1; }
           done
           unzip -p "$zip" "pdfcraft-web-$VERSION/index.html" | grep -q '<title>BCG PDF</title>' \

@@ -24,6 +24,43 @@ fn main() {
     if let Err(e) = std::fs::write(&out, generate(&json, &people)) {
         println!("cargo::warning=writing {}: {e}", out.display());
     }
+    bcg_fonts();
+}
+
+/// BCG PDF build: the BCG interface fonts (Mulish, Yeseva One; SIL OFL 1.1) are an optional build
+/// input, like craft-fonts: `BCG_FONTS_DIR` holds `Mulish[wght].ttf` and `YesevaOne-Regular.ttf`
+/// (the BCG release workflow downloads them from google/fonts at a pinned commit and checks their
+/// SHA-256). Unset, the app keeps Inter. `BCG_FONTS_REQUIRED` makes missing files an error.
+fn bcg_fonts() {
+    println!("cargo::rerun-if-env-changed=BCG_FONTS_DIR");
+    println!("cargo::rerun-if-env-changed=BCG_FONTS_REQUIRED");
+    let required = std::env::var_os("BCG_FONTS_REQUIRED").is_some();
+    let dir = std::env::var_os("BCG_FONTS_DIR").map(std::path::PathBuf::from);
+    let mut src = String::new();
+    for (name, file) in [("MULISH", "Mulish[wght].ttf"), ("YESEVA_ONE", "YesevaOne-Regular.ttf")] {
+        let path = dir.as_ref().map(|d| d.join(file)).filter(|p| p.is_file());
+        match (&path, &dir) {
+            (Some(p), _) => {
+                println!("cargo::rerun-if-changed={}", p.display());
+                let _ = writeln!(src, "pub static {name}: Option<&[u8]> = Some(include_bytes!({:?}));", p.display().to_string());
+            }
+            (None, Some(d)) if required => println!("cargo::error=BCG_FONTS_DIR={}: {file} missing", d.display()),
+            (None, Some(d)) => {
+                println!("cargo::warning=BCG_FONTS_DIR={}: {file} missing; building without it", d.display());
+                let _ = writeln!(src, "pub static {name}: Option<&[u8]> = None;");
+            }
+            (None, None) => {
+                if required {
+                    println!("cargo::error=BCG_FONTS_REQUIRED is set but BCG_FONTS_DIR is not");
+                }
+                let _ = writeln!(src, "pub static {name}: Option<&[u8]> = None;");
+            }
+        }
+    }
+    let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("bcg_fonts.rs");
+    if let Err(e) = std::fs::write(&out, src) {
+        println!("cargo::warning=writing {}: {e}", out.display());
+    }
 }
 
 fn read<T>(path: &std::path::Path, fallback: &str, parse: impl Fn(&str) -> Result<T, String>) -> Option<T> {

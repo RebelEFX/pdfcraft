@@ -31,6 +31,8 @@ macro_rules! tl_ctx {
 mod a11y_ui;
 mod actions_ui;
 mod appearance;
+/// BCG PDF build: the workflow rail, drawers and Start screen.
+pub mod bcg;
 pub mod canvas;
 mod chrome;
 mod combine_grid;
@@ -3118,6 +3120,7 @@ impl eframe::App for PdfCraftApp {
         if self.draws_window_frame() {
             window_controls::resize_edges(&ctx);
         }
+        bcg::rail::show(self, ui);
         chrome::tab_strip(self, ui);
         chrome::mode_bar(self, ui);
         if self.active.is_some() {

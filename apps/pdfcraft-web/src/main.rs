@@ -27,6 +27,8 @@ fn main() {
                     if let Some(json) = cc.storage.and_then(|s| s.get_string("pdfcraft").or_else(|| s.get_string("printcraft"))) {
                         app.restore(&json);
                     }
+                    // BCG PDF: the workflow rail, its drawers and the Start screen.
+                    pdfcraft_ui_egui::bcg::enable(&mut app, &cc.egui_ctx);
                     // `?file=<url>` opens a PDF from a URL (same-origin or CORS-enabled).
                     if let Some(url) = query_param("file") {
                         let inbox = app.startup_inbox.clone();
