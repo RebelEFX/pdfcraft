@@ -2,7 +2,7 @@
 //! tool groups, with BCG wording. Whether a tool works yet comes from upstream's catalogue, so a
 //! tool PdfCraft finishes turns on here by itself.
 
-use pdfcraft_engine::catalog::{Availability, TOOL_GROUPS};
+use pdfcraft_engine::catalog::TOOL_GROUPS;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Stage {
@@ -73,18 +73,16 @@ impl Action {
         }
     }
 
-    /// Whether the tool works today, per upstream's catalogue. A command the catalogue doesn't
-    /// list is ready when it is registered.
+    /// Whether the tool works in this build ([`super::hide`]): ready in upstream's catalogue,
+    /// with any model files it needs installed. A command the catalogue doesn't list works
+    /// when it is registered.
     pub fn ready(self) -> bool {
         match self {
-            Action::Tool(group) => pdfcraft_engine::catalog::group(group).is_some_and(|g| matches!(g.availability, Availability::Ready)),
+            Action::Tool(group) => pdfcraft_engine::catalog::group(group).is_some_and(super::hide::group_works),
             _ => {
                 let Some(command) = self.catalogue_command() else { return false };
-                let listed = TOOL_GROUPS.iter().flat_map(|g| g.sections).flat_map(|s| s.items).find(|i| i.command == command);
-                match listed {
-                    Some(item) => matches!(item.availability, Availability::Ready),
-                    None => pdfcraft_engine::commands::command(command).is_some(),
-                }
+                let listed = TOOL_GROUPS.iter().flat_map(|g| g.sections).flat_map(|s| s.items).any(|i| i.command == command);
+                super::hide::works(command) && (listed || pdfcraft_engine::commands::command(command).is_some())
             }
         }
     }
@@ -337,6 +335,7 @@ static MORE: StageSpec =
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pdfcraft_engine::catalog::Availability;
 
     fn all_entries() -> impl Iterator<Item = &'static Entry> {
         Stage::RAIL.into_iter().chain([Stage::More]).flat_map(|s| {
