@@ -1,6 +1,6 @@
 //! The tool drawer beside the rail: the stage's heading, one navy main action, its tools as
-//! buttons with a line on what each does, format cards for Export, and the tools PdfCraft
-//! hasn't finished under "Coming later".
+//! buttons with a line on what each does, and format cards for Export. Tools that don't work
+//! in this build are left out ([`super::hide`]); they appear once they do.
 //!
 //! BCG wording is English only, so these strings deliberately avoid the `tl!` macro: the
 //! catalogues' coverage tests scan the source for its literals.
@@ -56,14 +56,12 @@ pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens) {
         }
         ui.add_space(12.0);
         egui::ScrollArea::vertical().id_salt(("bcg_drawer", stage as u64)).auto_shrink([false, false]).show(ui, |ui| {
-            if let Some(primary) = &spec.primary
+            if let Some(primary) = spec.primary.as_ref().filter(|p| p.action.ready())
                 && main_action(ui, t, primary, usable(app, primary.action)).clicked()
             {
                 run = Some(primary.action);
             }
-            let mut later: Vec<&Entry> = Vec::new();
             let ready_formats: Vec<&Entry> = spec.formats.iter().filter(|f| f.action.ready()).collect();
-            later.extend(spec.formats.iter().filter(|f| !f.action.ready()));
             if !ready_formats.is_empty() {
                 widgets::section_title(ui, "Save a copy as");
                 if let Some(a) = format_grid(app, ui, t, &ready_formats) {
@@ -72,7 +70,6 @@ pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens) {
             }
             for section in spec.sections {
                 let ready: Vec<&Entry> = section.entries.iter().filter(|e| e.action.ready()).collect();
-                later.extend(section.entries.iter().filter(|e| !e.action.ready()));
                 if ready.is_empty() {
                     continue;
                 }
@@ -81,12 +78,6 @@ pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens) {
                     if let Some(a) = row(app, ui, t, entry) {
                         run = Some(a);
                     }
-                }
-            }
-            if !later.is_empty() {
-                widgets::section_title(ui, "Coming later");
-                for entry in later {
-                    planned_row(ui, t, entry);
                 }
             }
             ui.add_space(12.0);
@@ -218,24 +209,6 @@ fn row(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, entry: &'static Entry) 
         return chosen.map(Action::Command);
     }
     (enabled && resp.clicked()).then_some(entry.action)
-}
-
-/// A tool PdfCraft hasn't finished: grey, says so, and does nothing.
-fn planned_row(ui: &mut egui::Ui, t: &Tokens, entry: &Entry) {
-    let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, false, entry.label));
-    let _ = resp.on_hover_text("Not available yet");
-    let p = ui.painter();
-    let icon_box = Rect::from_min_size(rect.min + vec2(8.0, (ROW_H - ICON_BOX) / 2.0), vec2(ICON_BOX, ICON_BOX));
-    p.rect_filled(icon_box, CornerRadius::same(8), t.pressed);
-    crate::icons::paint(ui, icon_box, entry.icon, 19.0, t.text_faint);
-    let soon_font = theme::semibold(11.5);
-    let soon_w = widgets::text_width(ui, "Not yet", &soon_font);
-    ui.painter().text(rect.right_center() - vec2(8.0, 0.0), Align2::RIGHT_CENTER, "Not yet", soon_font, t.text_faint);
-    let x = icon_box.right() + 12.0;
-    let width = rect.right() - x - soon_w - 18.0;
-    one_line(ui, entry.label, theme::semibold(14.0), t.text_faint, egui::pos2(x, rect.center().y - 9.0), width);
-    one_line(ui, entry.hint, theme::regular(12.5), t.text_faint, egui::pos2(x, rect.center().y + 10.0), width);
 }
 
 /// Export's format cards, two to a row. Hover turns the border sage and adds one soft shadow.

@@ -66,6 +66,10 @@ fn all_tools(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens) {
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
         let shown = if app.all_tools_expanded { TOOL_GROUPS.len() } else { COLLAPSED_TOOLS.min(TOOL_GROUPS.len()) };
         for g in &TOOL_GROUPS[..shown] {
+            // BCG PDF build: tools that don't work in this build are left out.
+            if crate::bcg::hide::hides_group(ui.ctx(), g) {
+                continue;
+            }
             if tool_row(ui, t, g).clicked() {
                 app.select_tool(g.id);
             }
@@ -207,8 +211,15 @@ fn tool_detail(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, g: &'static
     let list_h = if footer { (ui.available_height() - 52.0).max(80.0) } else { ui.available_height() };
     egui::ScrollArea::vertical().auto_shrink([false, false]).max_height(list_h).show(ui, |ui| {
         for s in g.sections {
+            // BCG PDF build: tools that don't work in this build are left out.
+            if s.items.iter().all(|i| crate::bcg::hide::hides(ui.ctx(), i.command)) {
+                continue;
+            }
             widgets::section_title(ui, tl!(s.title));
             for item in s.items {
+                if crate::bcg::hide::hides(ui.ctx(), item.command) {
+                    continue;
+                }
                 if g.id == "fill_sign" && (item.command.starts_with("sign.fill.signature") || item.command.starts_with("sign.fill.initials")) {
                     continue;
                 }

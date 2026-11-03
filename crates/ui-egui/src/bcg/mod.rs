@@ -12,6 +12,8 @@
 //! - `theme::font_definitions_for_platform`: [`fonts::register`] adds the BCG faces (only when
 //!   the build embeds them, `BCG_FONTS_DIR`).
 //! - `theme::Tokens::for_kind`: the light palette is BCG's (always, shell on or off).
+//! - `panels::all_tools`, `panels::tool_detail`, `palette::show` and `organize_panel::row`
+//!   leave out tools that don't work in this build ([`hide`]).
 //!
 //! The rail drives the app's existing state (`left`, `left_open`, `mode`, the page grid) and
 //! runs registered commands; it adds no tool behaviour of its own. Tool panels with live
@@ -20,6 +22,7 @@
 
 pub mod drawer;
 pub mod fonts;
+pub mod hide;
 pub mod rail;
 pub mod stages;
 pub mod start;

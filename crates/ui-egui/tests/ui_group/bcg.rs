@@ -58,7 +58,9 @@ fn a_stage_opens_its_drawer_and_a_second_click_closes_it() {
     assert_eq!(h.state().left, LeftPanel::AllTools);
     h.get_by_label("Add a password");
     h.get_by_label("Mark text and images");
-    h.get_by_label("Encrypt for certain people");
+    // Tools that don't work yet are left out, not greyed.
+    assert!(h.query_by_label("Encrypt for certain people").is_none());
+    assert!(h.query_by_label_contains("Coming later").is_none());
     rail(&mut h, "Protect tools");
     assert!(!h.state().left_open, "picking the current stage again closes its drawer");
 }
@@ -111,7 +113,46 @@ fn more_tools_shows_the_full_tool_list() {
     rail(&mut h, "More tools");
     assert!(h.state().left_open);
     h.get_by_label("All tools");
-    assert!(h.query_all_by_label("Use JavaScript").count() + h.query_all_by_label("View more").count() >= 1);
+    h.get_by_label("View more").click();
+    h.run_steps(3);
+    h.get_by_label("Measure objects");
+    // Groups with nothing that works yet are left out; groups with working tools stay.
+    for gone in ["Use JavaScript", "AI assistant", "Add search index"] {
+        assert!(h.query_by_label(gone).is_none(), "{gone}");
+    }
+    h.get_by_label("Edit a PDF");
+}
+
+/// With the models missing (the web build), text recognition is hidden everywhere: the Create
+/// drawer, the Scan & OCR panel and Find a tool or command.
+#[test]
+fn tools_that_do_not_work_are_hidden_everywhere() {
+    if pdfcraft_engine::ocr::available() {
+        return; // the models are installed here, so recognition works and shows
+    }
+    let mut h = harness(true);
+    rail(&mut h, "Create tools");
+    h.get_by_label("Create from a file");
+    assert!(h.query_by_label("Recognize text").is_none());
+    h.state_mut().left = LeftPanel::Tool("scan");
+    h.state_mut().left_open = true;
+    h.run_steps(3);
+    h.get_by_label("Enhance camera image");
+    for gone in ["In this file", "In multiple files", "Enhance scanned file", "Correct recognized text"] {
+        assert!(h.query_by_label(gone).is_none(), "{gone}");
+    }
+    h.state_mut().left = LeftPanel::Tool("protect");
+    h.state_mut().left_open = true;
+    h.run_steps(3);
+    h.get_by_label("Protect with password");
+    assert!(h.query_by_label("Encrypt with certificate").is_none());
+    h.state_mut().palette_open = true;
+    h.state_mut().palette_query = "recognize".into();
+    h.run_steps(3);
+    assert!(h.query_by_label_contains("Recognize text").is_none(), "not offered in Find a tool or command");
+    h.state_mut().palette_query = "javascript".into();
+    h.run_steps(3);
+    assert!(h.query_by_label("Use JavaScript").is_none());
 }
 
 #[test]

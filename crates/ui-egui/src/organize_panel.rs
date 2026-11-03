@@ -187,6 +187,10 @@ enum Availability {
 /// One row of the panel: a monochrome icon and the label, as Acrobat draws them, with a corner
 /// mark when it opens a menu.
 fn row(ui: &mut egui::Ui, t: &Tokens, icon: &str, label: &str, availability: Availability, menu: bool) -> egui::Response {
+    // BCG PDF build: rows that don't work in this build are left out.
+    if availability == Availability::Later && crate::bcg::enabled(ui.ctx()) {
+        return ui.allocate_response(egui::Vec2::ZERO, Sense::hover());
+    }
     let ready = availability == Availability::Ready && ui.is_enabled();
     let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 34.0), if ready { Sense::click() } else { Sense::hover() });
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ready, label));
